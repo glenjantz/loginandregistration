@@ -5,42 +5,76 @@ import bcrypt
 Email_Regex = re.compile(r'^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]+$')
 Name_Regex = re.compile(r'^[A-Za-z]+$')
 
+
 class UserManager(models.Manager):
     def register(self, postFirstName, postLastName, postEmail, postPassword, postConfirm):
+        status = True
+        errorlist = []
         if not Email_Regex.match(postEmail):
-            return {'errors':'False'}
-        elif len(User.userManager.filter(email = postEmail)) > 0:
-            return {'errors1': 'False'}
-        elif postPassword != postConfirm:
-            return {'errors2': 'False'}
-        elif len(postFirstName) < 2:
-            return {'errors3': 'False'}
-        elif len(postLastName) < 2:
-            return {'errors3': 'False'}
+            errorlist.append('Invalid email!')
+            status = False
+            # return {'errors':'False'}
+        if len(User.userManager.filter(email = postEmail)) > 0:
+            errorlist.append('Email already exists, please log in.')
+            status = False
+            # return {'errors1': 'False'}
+        if postPassword != postConfirm:
+            errorlist.append('Passwords must match.')
+            status = False
+            # return {'errors2': 'False'}
+        if len(postFirstName) < 2:
+            errorlist.append('First name must be at least 2 characters.')
+            status = False
+            # return {'errors3': 'False'}
         elif not Name_Regex.match(postFirstName):
-            return {'errors4': 'False'}
+            errorlist.append('First name can not contain numbers.')
+            status = False
+        if len(postLastName) < 2:
+            errorlist.append('Last name must be at least 2 characters.')
+            status = False
+            # return {'errors3': 'False'}
+            # return {'errors4': 'False'}
         elif not Name_Regex.match(postLastName):
-            return {'errors4': 'False'}
-        elif len(postPassword) < 8:
-            return {'errors5': 'False'}
+            errorlist.append('Last name can not contain numbers.')
+            status = False
+            # return {'errors4': 'False'}
+        if len(postPassword) < 8:
+            errorlist.append('Password must be greater than 8 characters')
+            status = False
+            # return {'errors5': 'False'}
+        if status == False:
+            return {'errors': errorlist}
         else:
             password = postPassword
             hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-        return {'first_name': postFirstName, 'last_name': postLastName, 'email': postEmail, 'password': hashed}
+            return {'first_name': postFirstName, 'last_name': postLastName, 'email': postEmail, 'password': hashed}
 
     def login(self, postEmail, postPassword):
+        status = True
+        errorlist = []
         user = User.userManager.filter(email = postEmail)
         if len(postEmail) < 1:
-            return {'errors': 'False'}
-        elif len(postPassword) < 8:
-            return {'errors5': 'False'}
-        elif len(user) < 1:
-            return {'errors6': 'False'}
+            status = False
+            errorlist.append('Must fill in email.')
+            # return {'errors': 'False'}
+        if len(postPassword) < 1:
+            status = False
+            errorlist.append('Must fill in password.')
+            # return {'errors5': 'False'}
+        if len(user) < 1:
+            status = False
+            errorlist.append('Email does not exist, please register.')
+            # return {'errors6': 'False'}
+        if status == False:
+            return {'errors': errorlist}
         else:
             if bcrypt.hashpw(postPassword.encode(), user[0].password.encode()) == user[0].password:
                 return {'login': 'true'}
             else:
-                {'errors': 'False'}
+                status = False
+                errorlist.append('Password does not match records.')
+                return {'errors': errorlist}
+                # {'errors': 'False'}
 
 # Create your models here.
 class User(models.Model):
